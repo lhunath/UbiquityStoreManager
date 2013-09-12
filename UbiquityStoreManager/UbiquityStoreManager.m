@@ -857,10 +857,11 @@ extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
         cloudStoreOptions = [@{
                 NSPersistentStoreUbiquitousContentNameKey         : cloudContentName,
                 NSPersistentStoreUbiquitousContentURLKey          : cloudStoreContentURL,
-                NSPersistentStoreUbiquitousContainerIdentifierKey : self.containerIdentifier,
                 NSMigratePersistentStoresAutomaticallyOption      : @YES,
                 NSInferMappingModelAutomaticallyOption            : @YES
         } mutableCopy];
+        if (self.containerIdentifier)
+            cloudStoreOptions[NSPersistentStoreUbiquitousContainerIdentifierKey] = self.containerIdentifier;
     }
     else {
         // iOS 6
