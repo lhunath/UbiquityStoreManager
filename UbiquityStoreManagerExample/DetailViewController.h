@@ -8,11 +8,11 @@
 
 #import <UIKit/UIKit.h>
 
-@interface DetailViewController : UITableViewController <UISplitViewControllerDelegate>
+@interface DetailViewController : UITableViewController<UISplitViewControllerDelegate>
 
-@property (strong, nonatomic) id detailItem;
+@property(strong, nonatomic) IBOutlet UILabel *detailDescriptionLabel;
+@property(strong, nonatomic) NSArray *fileList;
 
-@property (strong, nonatomic) IBOutlet UILabel *detailDescriptionLabel;
-@property (strong, nonatomic) NSArray *fileList;
+@property(strong, nonatomic) id detailItem;
 
 @end

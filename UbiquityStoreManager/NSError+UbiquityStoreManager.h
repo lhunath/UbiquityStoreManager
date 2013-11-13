@@ -12,6 +12,7 @@
 
 
 extern NSString *const UbiquityManagedStoreDidDetectCorruptionNotification;
+extern NSString *const USMStoreURLsErrorKey;
 
 @interface NSError(UbiquityStoreManager)
 

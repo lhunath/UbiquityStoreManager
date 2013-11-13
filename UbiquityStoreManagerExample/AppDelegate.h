@@ -11,21 +11,16 @@
 
 @class User;
 
-@interface AppDelegate : UIResponder <UIApplicationDelegate, UIAlertViewDelegate, UbiquityStoreManagerDelegate>
+@interface AppDelegate : UIResponder<UIApplicationDelegate, UIAlertViewDelegate, UbiquityStoreManagerDelegate>
 
-@property (strong, nonatomic) UIWindow *window;
+@property(strong, nonatomic) UIWindow *window;
+@property(strong, nonatomic) UINavigationController *navigationController;
+@property(strong, nonatomic) UISplitViewController *splitViewController;
+@property(strong, nonatomic) UbiquityStoreManager *ubiquityStoreManager;
 
-@property (readonly, strong, nonatomic) NSManagedObjectContext *managedObjectContext;
-@property (readonly, strong, nonatomic) NSManagedObjectModel *managedObjectModel;
+@property(readonly, strong, nonatomic) NSManagedObjectContext *managedObjectContext;
 
-- (void)saveContext;
-- (NSURL *)applicationDocumentsDirectory;
-
-@property (strong, nonatomic) UINavigationController *navigationController;
-@property (strong, nonatomic) UISplitViewController *splitViewController;
-@property (strong, nonatomic) UbiquityStoreManager *ubiquityStoreManager;
-
-+ (AppDelegate *)appDelegate;
++ (AppDelegate *)sharedAppDelegate;
 - (User *)primaryUser;
 
 @end

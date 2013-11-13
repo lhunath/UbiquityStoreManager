@@ -7,11 +7,11 @@
 //
 
 #import "Event.h"
-#import "User.h"
 
 
 @implementation Event
 
+@dynamic creater;
 @dynamic timeStamp;
 @dynamic user;
 

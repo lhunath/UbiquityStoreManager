@@ -8,9 +8,11 @@
  */
 
 
+#import <CoreData/CoreData.h>
 #import "NSError+UbiquityStoreManager.h"
 
 NSString *const UbiquityManagedStoreDidDetectCorruptionNotification = @"UbiquityManagedStoreDidDetectCorruptionNotification";
+NSString *const USMStoreURLsErrorKey = @"USMStoreURLsErrorKey";
 
 @implementation NSError(UbiquityStoreManager)
 
@@ -25,7 +27,7 @@ NSString *const UbiquityManagedStoreDidDetectCorruptionNotification = @"Ubiquity
             NSLog( @"and provide details of the conditions and whether or not you notice" );
             NSLog( @"any sync issues afterwards.  Error userInfo:" );
             for (id key in dict) {
-                id value = [dict objectForKey:key];
+                id value = dict[key];
                 NSLog( @"[%@] %@ => [%@] %@", [key class], key, [value class], value );
             }
             NSLog( @"Error Debug Description:\n%@", [self debugDescription] );
@@ -41,27 +43,34 @@ NSString *const UbiquityManagedStoreDidDetectCorruptionNotification = @"Ubiquity
     if (!error)
         return NO;
     
-    if ([error.domain isEqualToString:NSCocoaErrorDomain] && error.code == 1570) {
+    if ([error.domain isEqualToString:NSCocoaErrorDomain] && error.code == NSValidationMissingMandatoryPropertyError) {
         // Severity: Critical To Cloud Content
-        // Cause: Validation Error -- The object being imported does not pass model validation: It is corrupt.
-        // (it passed model validation on the other device just fine since it got saved!).
+        // Cause: Validation Error -- non-optional property with a nil value.  The other end of a required relationship is missing from the store.
         // Action: Mark corrupt, request rebuild.
-        [[NSNotificationCenter defaultCenter] postNotificationName:UbiquityManagedStoreDidDetectCorruptionNotification object:self];
+        NSManagedObject *object = [error userInfo][NSValidationObjectErrorKey];
+        NSPersistentStoreCoordinator *psc = object.managedObjectContext.persistentStoreCoordinator;
+        NSMutableArray *storeURLs = [NSMutableArray arrayWithCapacity:[psc.persistentStores count]];
+        for (NSPersistentStore *store in psc.persistentStores)
+            [storeURLs addObject:[psc URLForPersistentStore:store]];
+        [[NSNotificationCenter defaultCenter] postNotificationName:UbiquityManagedStoreDidDetectCorruptionNotification object:@{
+                NSUnderlyingErrorKey : self,
+                USMStoreURLsErrorKey : storeURLs,
+        }];
         return YES;
     }
-    if ([(NSString *)[error.userInfo objectForKey:@"reason"] hasPrefix:@"Error reading the log file at location: (null)"]) {
+    if ([(NSString *)(error.userInfo)[@"reason"] hasPrefix:@"Error reading the log file at location: (null)"]) {
         // Severity: Delayed Import?
         // Cause: Log file failed to download?
         // Action: Ignore.
         return YES;
     }
 
-    if ([self handleError:[error.userInfo objectForKey:NSUnderlyingErrorKey]])
+    if ([self handleError:(error.userInfo)[NSUnderlyingErrorKey]])
         return YES;
-    if ([self handleError:[error.userInfo objectForKey:@"underlyingError"]])
+    if ([self handleError:(error.userInfo)[@"underlyingError"]])
         return YES;
 
-    NSArray *errors = [error.userInfo objectForKey:@"NSDetailedErrors"];
+    NSArray *errors = (error.userInfo)[@"NSDetailedErrors"];
     for (NSError *error_ in errors)
         if ([self handleError:error_])
             return YES;

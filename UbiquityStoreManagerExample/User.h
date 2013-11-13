@@ -17,7 +17,7 @@
 @property (nonatomic, strong) NSSet *events;
 
 + (User *)primaryUserInContext:(NSManagedObjectContext *)context;
-+ (User *)insertedNewUserInManagedObjectContext:(NSManagedObjectContext *)context;
++ (User *)insertUserInManagedObjectContext:(NSManagedObjectContext *)context primary:(BOOL)primary;
 - (User *)userInContext:(NSManagedObjectContext *)context;
 
 @end

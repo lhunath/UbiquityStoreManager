@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>90883067-A39F-43D9-99C0-E1AF83B66A30</string>
+	<key>IDESourceControlProjectName</key>
+	<string>UbiquityStoreManagerExample</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>5263993D-5FE8-464F-B66E-B0F7C2DFF410</key>
+		<string>ssh://github.com/lhunath/UbiquityStoreManager.git</string>
+		<key>EFCCDE73-378E-46A4-8A02-B05EBB580C2D</key>
+		<string>git://github.com/jonmarimba/jrswizzle.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>UbiquityStoreManagerExample.xcodeproj/project.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>5263993D-5FE8-464F-B66E-B0F7C2DFF410</key>
+		<string>../..</string>
+		<key>EFCCDE73-378E-46A4-8A02-B05EBB580C2D</key>
+		<string>../../jrswizzle</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>ssh://github.com/lhunath/UbiquityStoreManager.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>110</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>5263993D-5FE8-464F-B66E-B0F7C2DFF410</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>EFCCDE73-378E-46A4-8A02-B05EBB580C2D</string>
+			<key>IDESourceControlWCCName</key>
+			<string>jrswizzle</string>
+		</dict>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>5263993D-5FE8-464F-B66E-B0F7C2DFF410</string>
+			<key>IDESourceControlWCCName</key>
+			<string>UbiquityStoreManager</string>
+		</dict>
+	</array>
+</dict>
+</plist>

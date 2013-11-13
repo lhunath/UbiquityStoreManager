@@ -1,12 +1,14 @@
 # About
 
-`UbiquityStoreManager` is a controller that implements **iCloud integration with Core Data** for you.
+`UbiquityStoreManager` is a controller that implements **iCloud integration with Core Data** for you, and takes away all the hardship.
 
-While Apple portrays iCloud integration as trivial, the contrary is certainly true.  Especially for Core Data, there are many caveats, side-effects and undocumented behaviors that need to be handled to get a reliable implementation.
+When Apple first released the amazing Core Data integration with iCloud, it was a very simple API portrayed as trivial to integrate.  Unfortunately, the contrary was certainly true.  Apple has since made significant strides forward, especially in iOS 7.  Nonetheless, there are still many caveats, side-effects and undocumented behaviors that need to be handled to get a reliable implementation.
 
-Unfortunately, Apple also has a bunch of serious bugs left to work out in this area, which can sometimes lead to cloud stores that become desynced or even irreparably broken.  `UbiquityStoreManager` handles these situations as best as possible.
+`UbiquityStoreManager` also provides an immensely useful set of migration utilities for those interested in more control over their user's data than the "default" choices Apple has made for you.
 
-The API has been kept as simple as possible while giving you, the application developer, the hooks you need to get the behavior you want.  Wherever possible, `UbiquityStoreManager` implements safe and sane default behavior to handle exceptional situations.  These cases are well documented in the API documentation, as well as your ability to plug into the manager and implement your own custom behavior.
+Unfortunately, your users on iOS 6 still suffer a bunch of serious bugs in iCloud, which can sometimes lead to cloud stores that become desynced or even irreparably broken.  `UbiquityStoreManager` handles these situations as best as possible.
+
+The API has been kept as simple as possible while giving you, the application developer, the hooks you need to get the exact behavior you want.  Wherever possible, `UbiquityStoreManager` implements safe and sane default behavior to handle exceptional situations but lets you make different choices if desired.  The cases are well documented in the API documentation, as well as your ability to plug into the manager and implement your own custom behavior.
 
 # Disclaimer
 
@@ -15,6 +17,17 @@ I provide `UbiquityStoreManager` and its example application to you for free and
 Creating `UbiquityStoreManager` has taken me a huge amount of work and few developers have so far been brave enough to try and solve the iCloud for Core Data problem that Apple left us with.  This code is provided to you free of cost, in the hopes that it will be useful to you in its current form or another.  If this solution is useful to you, please consider saying *thanks* or donating to the cause.
 
 <a href='http://www.pledgie.com/campaigns/19629'><img alt='Click here to lend your support to: UbiquityStoreManager and make a donation at www.pledgie.com !' src='http://www.pledgie.com/campaigns/19629.png?skin_name=chrome' border='0' /></a>
+
+# Note on iOS 7
+
+Apple has significantly improved their Core Data integration with iCloud in iOS 7.  Applications that wish to benefit from these improvements need to become iOS 7 only.  `UbiquityStoreManager` has been updated with support for iOS 7.  Devices running iOS 7+ (or OS X 10.9+) will initially migrate their old data over to a new iOS 7+ only store, and will hence forth sync only amoung other iOS 7+/OS X 10.9+ devices.  iOS 6/OS X 10.8 devices will similarly only sync amoung each other.  `USM` behaves this way to isolate the buggy old implementation of iCloud from the improved new implementation.
+
+With iOS 7's improvements, why should you still use `USM`?
+
+  * iOS 6 support: Apple now recommends all iCloud using apps be iOS 7-only.  You may not necessarily agree.
+  * Local Store: Apple has, for simplicity, decided that when the user enables iCloud on their phone in Settings, all apps that support iCloud will switch over to that iCloud account.  More importantly, when a user wants to stop using iCloud, all his data is gone.  `USM` gives you an application toggle that lets users switch between a ubiquitous store or a non-ubiquitous store.
+  * Migration Utilities: `USM` comes with a vast amount of utilities to migrate between stores.  Its API is simple and solves the problems your app will face: If your user wants to stop using iCloud, toggling iCloud off can, with one call, cause `USM` to switch to the local store and - if the user chooses - bring his cloud data with him to the local store.
+  * iCloud is still not trivial: There are still a lot of things you need to do right.  Just look at `USM`'s vast code-base.  If you use `USM`, all you do is `-init` an object, set a delegate and wait for us to give you a fully initialized `NSPersistentStoreCoordinator`.  Let us take care of the work so you can focus on your data model and your app.
 
 # Getting Started
 
@@ -26,6 +39,8 @@ To get started with `UbiquityStoreManager`, all you need to do is instantiate it
                              containerIdentifier:nil
                           additionalStoreOptions:nil
                                         delegate:self]
+
+The `nil` parameters can all be used to customize `UbiquityStoreManager`'s behavior.  For instance, if you already have a local store, you can pass its URL as the localStoreURL.
 
 And then wait in your delegate for the manager to bring up your persistence layer:
 
@@ -49,6 +64,8 @@ Initially, the manager will be using a local store.  To enable iCloud (you may w
 
     manager.cloudEnabled = YES;
 
+If you prefer, you can use the `-setCloudEnabledAndOverwriteCloudWithLocalIfConfirmed:` and `-setCloudDisabledAndOverwriteLocalWithCloudIfConfirmed:` methods instead, which allow you to ask the user (via the confirmation block) if he wants to bring his current data with him when moving to the new (local or cloud) store.  The confirmation block will only be triggered if necessary (the new store already exists).  Data is migrated by default if the new store doesn't exist yet.
+
 # Surely I’m not done yet!
 
 That depends on how much you want to get involved with what `UbiquityStoreManager` does internally to handle your store, and how much feedback you want to give your user with regards to what’s going on.
@@ -59,9 +76,9 @@ It’s probably also a good idea to update your main `moc` whenever ubiquity cha
 
 # What if things go wrong?
 
-And don’t be fooled: Things do go wrong.  Apple has a few kinks to work out, some of these can cause the cloud store to become irreparably desynced.
+And don’t be fooled: Things do go wrong.  There are still some kinks, especially for your iOS 6/OS X 10.8 users.  Some of these can cause the cloud store to become irreparably desynced.
 
-`UbiquityStoreManager` does its best to deal with these issues, mostly automatically.  Because the manager takes great care to ensure no data-loss occurs there are some rare cases where the store cannot be automatically salvaged.  It is therefore important that you implement some failure handling, at least in the way recommended by the manager.
+`UbiquityStoreManager` does its best to deal with the issues, mostly automatically.  Because the manager takes great care to ensure no data-loss occurs there are some rare cases where the store cannot be automatically salvaged.  It is therefore important that you implement some failure handling, at least in the way recommended by the manager.
 
 While it theoretically shouldn’t happen, sometimes ubiquity changes designed to sync your cloud store with the store on other devices can be incompatible with your cloud store.  Usually, this happens due to an Apple iCloud bug in dealing with relationships that are simultaneously edited from different devices, causing conflicts that can’t be handled.  Interestingly, the errors happen deep within Apple’s iCloud implementation and Apple doesn’t bother notifying you through any public API.  `UbiquityStoreManager` implements a way of detecting these issues when they occur and deals with them as best it can.  
 
@@ -101,7 +118,7 @@ Unless you want to get into the deep water, ***you’re done now***.  What follo
 
 # What else have you got?
 
-Since this is murky terrain, `UbiquityStoreManager` tries its best to keep interested delegates informed of what’s going on, and even gives it the ability to intervene in non-standard ways.
+`UbiquityStoreManager` tries its best to keep interested delegates informed of what’s going on, and even gives it the ability to intervene in non-standard ways.
 
 If you use a logger, you can plug it in by implementing `ubiquityStoreManager:log:`.  This method is called whenever the manager has something to say about what it’s doing.  We’re pretty verbose, so you may even want to implement this just to shut the manager up in production.
 
@@ -112,13 +129,18 @@ If the cloud content gets deleted, the manager unloads the persistence stores.  
 If you read the previous section carefully, you should understand that problems may occur during the importing of ubiquitous changes made by other devices.  The default way of handling the situation can usually automatically resolve the situation but may take some time to completely come about and may involve user interaction.  You may choose to handle the situation differently by implementing `ubiquityStoreManager:handleCloudContentCorruptionWithHealthyStore:` and returning `YES` after dealing with the corruption yourself.  The manager provides the following methods for you, which you can use for some low-level maintenance of the stores:
 
   * `-reloadStore` — Just clear and re-open or retry opening the active store.
+  * `-setCloudEnabledAndOverwriteCloudWithLocalIfConfirmed:` — Enable iCloud if not yet enabled.  If the user already has an iCloud store, your confirmation block is invoked allowing you to ask the user if he wants to either switch to the existing cloud data or overwrite it with his local data.
+  * `-setCloudDisableAndOverwriteLocalWithCloudIfConfirmed:` — Disable iCloud if enabled.  If the user already has a local store, your confirmation block is invoked allowing you to ask the user if he wants to either switch to the existing local data or overwrite it with his cloud data.
+  * `-migrateCloudToLocal` — Manually overwrite the user's local data with the data in his iCloud store.
+  * `-migrateLocalToCloud` — Manually overwrite the user's cloud data with the data in the local store.
   * `-deleteCloudContainerLocalOnly:` — All iCloud data for your application will be deleted.  That’s ***not just your Core Data store***!
   * `-deleteCloudStoreLocalOnly:` — Your Core Data cloud store will be deleted.
   * `-deleteLocalStore` — This will delete your local store (ie. the store that’s active when `manager.cloudEnabled` is `NO`).
-  * `-migrateCloudToLocalAndDeleteCloudStoreLocalOnly:` — Stop using iCloud and migrate all cloud data into the local store.
   * `-rebuildCloudContentFromCloudStoreOrLocalStore:` — This is where the cloud store rebuild magic happens.  Invoke this method to create a new cloud store and copy your current cloud data into it.
 
 Many of these methods take a `localOnly` parameter.  Set it to `YES` if you don’t want to affect the user’s iCloud data.  The operation will happen on the local device only.  For instance, if you run `[manager deleteCloudStoreLocalOnly:YES]`, the cloud store on the device will be deleted.  If `cloudEnabled` is `YES`, the manager will subsequently re-open the cloud store which will cause a re-download of all iCloud’s transaction logs for the store.  These transaction logs will then get replayed locally causing your local store to be repopulated from what’s in iCloud.
+
+`USM` will always try to be as non-destructive as possible.  If a migration or operation fails, it will revert the user back to the state he was in before.
 
 ## `parseLogs`
 
@@ -179,7 +201,7 @@ The process of loading a cloud store is somewhat more involved.  It's mostly the
     * Upon such success, this store is marked as the "active" cloud store by making its UUID ubiquitous.
   * If the cloud store fails to load once, a recovery attempt is made which deletes the local cloud store file and re-opens the cloud store, allowing iCloud to re-initialize the local cloud store file by importing all the cloud content again.
   * If the cloud store continues to fail loading, the store is marked as "corrupted".
-  * If the store is successfully loaded, USM waits 30 seconds (to see if any cloud content will fail to import) and if no failure is detected, it checks to see if other devices have reported the cloud store as "corrupted".  If so, cloud content recovery is initiated from this device which is, due to its success in loading the store, deemed healthy.
+  * If the store is successfully loaded, USM waits 20 seconds (to see if any cloud content will fail to import) and if no failure is detected, it checks to see if other devices have reported the cloud store as "corrupted".  If so, cloud content recovery is initiated from this device which is, due to its success in loading the store, deemed healthy.
 
 When a store is loaded, USM monitors it for deletion.  When the cloud store is deleted, USM will clean up any "corruption" marker, the local cloud store file, and will fall back to the local store unless the application chooses to handle the situation via `ubiquityStoreManagerHandleCloudContentDeletion:`.  When the local store is deleted, USM just reloads causing a new local store to be created.
 
@@ -187,7 +209,7 @@ The `cloudEnabled` setting is stored in `NSUserDefaults` under the key `@"USMClo
 
 Whenever the application becomes active, USM checks whether the iCloud identity has changed.  If a change is detected and iCloud is currently enabled, the store is reloaded allowing the change to take effect.  Similarly, when a change is detected to the active ubiquitous store UUID and iCloud is currently enabled, the store is also reloaded.
 
-When ubiquitous changes are detected in the cloud store, USM will import them using a private MOC.  Your application's delegate can specify a custom MOC to use for this, so that it can become aware of these changes immediately.  To do this, the application should return its MOC via `managedObjectContextForUbiquityChangesInManager:`.  If ubiquitous changes fail to import, the store is reloaded to retry the process and verify whether any corruption has occurred.  Upon successful completion,
+When ubiquitous changes are detected in the cloud store, your application's delegate can specify a custom MOC to use for importing these changes, so that it can become aware of the changes immediately.  To do this, the application should return its MOC via `managedObjectContextForUbiquityChangesInManager:`.  If ubiquitous changes fail to import, the store is reloaded to retry the process and verify whether any corruption has occurred.  Upon successful completion,
 the `UbiquityManagedStoreDidImportChangesNotification` notification is posted.
 
 The cloud store is marked as "corrupted" when it fails to load or when cloud transaction logs fail to import.  To detect the failure of transaction log import attempts made by Apple's Core Data, USM swizzles `NSError`'s init method.  This way, it can detect when an `NSError` is created for transaction log import failures and act accordingly.
@@ -196,13 +218,13 @@ When cloud "corruption" is detected the cloud store is immediately unloaded to p
 will be seeded from the healthy local cloud store file.  The new cloud store will be filled with the old cloud store's data and healthy cloud content will be built for it.  Upon completion, the non-healthy devices that were waiting will notice a new cloud store becoming active, will load it, and will become healthy again.  The application can hook into this process and change what happens by implementing `handleCloudContentCorruptionWithHealthyStore:`.
 
 Any store migration can be performed by one of four strategies:
-  * `UbiquityStoreMigrationStrategyIOS`: This strategy performs the migration via a coordinated `migratePersistentStore:` of the PSC.  Some iOS versions have bugs here which makes this generally unreliable.
-  * `UbiquityStoreMigrationStrategyCopyEntities`: This strategy performs the migration by copying over any non-ubiquitous metadata and copying over all entities, properties and relationships from one store to the other.  This is the default strategy.
+  * `UbiquityStoreMigrationStrategyIOS`: This strategy performs the migration via a coordinated `migratePersistentStore:` of the PSC.  Some iOS versions have bugs here which makes this generally unreliable.  This is the default strategy on iOS 7.
+  * `UbiquityStoreMigrationStrategyCopyEntities`: This strategy performs the migration by copying over any non-ubiquitous metadata and copying over all entities, properties and relationships from one store to the other.  This is the default strategy on iOS 6.
   * `UbiquityStoreMigrationStrategyManual`: This strategy allows the application's delegate to perform the migration by implementing `manuallyMigrateStore:`.  This may be necessary if you have a really huge or complex data model or want some more control over how exactly to migrate your entities.
   * `UbiquityStoreMigrationStrategyNone`: No migration is performed and the new store is opened as-is.
 
 # License
 
-`UbiquityStoreManager` is licensed under the [LASGPLv3](https://github.com/lhunath/UbiquityStoreManager/blob/master/LICENSE).  The LASGPLv3 is a modified version of the LGPLv3 with an App Store exemption clause which voids any LGPLv3 language that conflicts with Apple's App Store conditions.  While it's unsure whether the terms of the LGPLv3 are compatible with App Store distribution, this modification of the license makes compatibility explicit and removes any uncertainty.
+`UbiquityStoreManager` is licensed under the [Apache License, Version 2.0](https://github.com/lhunath/UbiquityStoreManager/blob/master/LICENSE).
 
 Feel free to use it in any of your applications.  I’m also happy to receive any comments, feedback or review any pull requests.

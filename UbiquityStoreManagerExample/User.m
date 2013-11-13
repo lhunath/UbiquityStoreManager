@@ -7,7 +7,6 @@
 //
 
 #import "User.h"
-#import "AppDelegate.h"
 
 @implementation User
 
@@ -16,30 +15,33 @@
 @dynamic events;
 
 + (User *)primaryUserInContext:(NSManagedObjectContext *)context {
-	User *user = nil;
-	NSManagedObjectModel *model = [AppDelegate appDelegate].managedObjectModel;
-	
-	NSFetchRequest *fetchRequest = [[model fetchRequestTemplateForName:@"primaryUser"] copy];
-	
-	NSError *error;
-	NSArray *results = [context executeFetchRequest:fetchRequest error:&error];
-	if (results && [results count] > 0) {
-		user = [results objectAtIndex:0];
-	}
-	return user;
+
+    NSError *error = nil;
+    NSFetchRequest *fetchRequest = [context.persistentStoreCoordinator.managedObjectModel fetchRequestTemplateForName:@"primaryUser"];
+    NSArray *results = [context executeFetchRequest:fetchRequest error:&error];
+    if (!results)
+        NSLog( @"Error while trying to get primary user: %@\n%@", error, [error userInfo] );
+
+    return [results firstObject];
 }
 
-+ (User *)insertedNewUserInManagedObjectContext:(NSManagedObjectContext *)context {
-	return [NSEntityDescription insertNewObjectForEntityForName:NSStringFromClass([User class]) inManagedObjectContext:context];
++ (User *)insertUserInManagedObjectContext:(NSManagedObjectContext *)context primary:(BOOL)primary {
+
+    NSError *error = nil;
+    User *newUser = [NSEntityDescription insertNewObjectForEntityForName:NSStringFromClass( [User class] ) inManagedObjectContext:context];
+    newUser.primary = primary;
+    if (![context save:&error])
+        NSLog( @"Error while saving insert of new user: %@\n%@", error, [error userInfo] );
+
+    return newUser;
 }
 
 - (User *)userInContext:(NSManagedObjectContext *)context {
-	if (context == self.managedObjectContext) {
-		return self;
-	}
-	else {
-		return (User *)[context objectWithID:[self objectID]];
-	}
+
+    if (context == self.managedObjectContext)
+        return self;
+
+    return (User *)[context objectWithID:[self objectID]];
 }
 
 @end

@@ -10,231 +10,227 @@
 #import "AppDelegate.h"
 #import "MasterViewController.h"
 #import "DetailViewController.h"
-#import "UbiquityStoreManager.h"
 #import "User.h"
 
-@interface AppDelegate ()
-@property(nonatomic, strong) UIAlertView *handleCloudContentAlert;
-
-@property(nonatomic, strong) UIAlertView *handleCloudContentWarningAlert;
-
-@property(nonatomic, strong) UIAlertView *handleLocalStoreAlert;
-@end
-
-
 @implementation AppDelegate {
-	MasterViewController *masterViewController;
+    UIAlertView *cloudContentCorruptedAlert;
+    UIAlertView *cloudContentHealingAlert;
+    UIAlertView *handleCloudContentWarningAlert;
+    UIAlertView *handleLocalStoreAlert;
+    MasterViewController *masterViewController;
 }
 
-@synthesize window						= _window;
-@synthesize managedObjectContext		= __managedObjectContext;
-@synthesize navigationController		= _navigationController;
-@synthesize splitViewController			= _splitViewController;
-@synthesize ubiquityStoreManager;
++ (AppDelegate *)sharedAppDelegate {
 
-+ (AppDelegate *)appDelegate {
-	return (AppDelegate *)[[UIApplication sharedApplication] delegate];
+    return (AppDelegate *)[[UIApplication sharedApplication] delegate];
 }
 
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
-{
-    NSLog(@"Starting UbiquityStoreManagerExample on device: %@\n\n", [UIDevice currentDevice].name);
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+
+    NSLog( @"Starting UbiquityStoreManagerExample on device: %@\n\n", [UIDevice currentDevice].name );
 
     // STEP 1 - Initialize the UbiquityStoreManager
-	ubiquityStoreManager = [[UbiquityStoreManager alloc] initStoreNamed:nil withManagedObjectModel:nil
-                                                          localStoreURL:nil containerIdentifier:nil additionalStoreOptions:nil
-                                                               delegate:self];
-	
-    self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    _ubiquityStoreManager = [[UbiquityStoreManager alloc] initStoreNamed:nil withManagedObjectModel:nil
+                                                           localStoreURL:nil containerIdentifier:nil additionalStoreOptions:nil
+                                                                delegate:self];
+
+    self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].applicationFrame];
+
     // Override point for customization after application launch.
-	if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-	    masterViewController = [[MasterViewController alloc] initWithNibName:@"MasterViewController_iPhone" bundle:nil];
-	    self.navigationController = [[UINavigationController alloc] initWithRootViewController:masterViewController];
-	    self.window.rootViewController = self.navigationController;
-	} else {
-	    masterViewController = [[MasterViewController alloc] initWithNibName:@"MasterViewController_iPad" bundle:nil];
-	    UINavigationController *masterNavigationController = [[UINavigationController alloc] initWithRootViewController:masterViewController];
-	    
-	    DetailViewController *detailViewController = [[DetailViewController alloc] initWithNibName:@"DetailViewController_iPad" bundle:nil];
-	    UINavigationController *detailNavigationController = [[UINavigationController alloc] initWithRootViewController:detailViewController];
-		
-		masterViewController.detailViewController = detailViewController;
-	    
-	    self.splitViewController = [[UISplitViewController alloc] init];
-	    self.splitViewController.delegate = detailViewController;
-	    self.splitViewController.viewControllers = [NSArray arrayWithObjects:masterNavigationController, detailNavigationController, nil];
-	    
-	    self.window.rootViewController = self.splitViewController;
-	}
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        masterViewController = [[MasterViewController alloc] initWithNibName:@"MasterViewController_iPhone" bundle:nil];
+        self.navigationController = [[UINavigationController alloc] initWithRootViewController:masterViewController];
+        self.window.rootViewController = self.navigationController;
+    }
+    else {
+        masterViewController = [[MasterViewController alloc] initWithNibName:@"MasterViewController_iPad" bundle:nil];
+        UINavigationController
+                *masterNavigationController = [[UINavigationController alloc] initWithRootViewController:masterViewController];
+
+        DetailViewController *detailViewController = [[DetailViewController alloc] initWithNibName:@"DetailViewController_iPad" bundle:nil];
+        UINavigationController
+                *detailNavigationController = [[UINavigationController alloc] initWithRootViewController:detailViewController];
+
+        masterViewController.detailViewController = detailViewController;
+
+        self.splitViewController = [UISplitViewController new];
+        self.splitViewController.delegate = detailViewController;
+        self.splitViewController.viewControllers = @[ masterNavigationController, detailNavigationController ];
+        self.window.rootViewController = self.splitViewController;
+    }
+
     [self.window makeKeyAndVisible];
+
     return YES;
 }
 
-- (void)applicationWillResignActive:(UIApplication *)application {
-	// Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-	// Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
-}
+- (void)applicationWillTerminate:(UIApplication *)application {
 
-- (void)applicationDidEnterBackground:(UIApplication *)application
-{
-	// Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later. 
-	// If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
-}
-
-- (void)applicationWillEnterForeground:(UIApplication *)application
-{
-}
-
-- (void)applicationDidBecomeActive:(UIApplication *)application
-{
-	// Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
-}
-
-- (void)applicationWillTerminate:(UIApplication *)application
-{
-	// Saves changes in the application's managed object context before the application terminates.
-	[self saveContext];
-}
-
-- (void)saveContext {
     NSManagedObjectContext *managedObjectContext = self.managedObjectContext;
-	
-    if (managedObjectContext != nil) {
-        if ([managedObjectContext hasChanges]) {
-			[managedObjectContext performBlockAndWait:^{
-				NSError *error = nil;
-
-				if (![managedObjectContext save:&error]) {
-					// Replace this implementation with code to handle the error appropriately.
-					// abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development. 
-					NSLog(@"Unresolved error %@, %@", error, [error userInfo]);
-					abort();
-				}
-			}];
-        } 
-    }
-}
-
-#pragma mark - Application's Documents directory
-
-// Returns the URL to the application's Documents directory.
-- (NSURL *)applicationDocumentsDirectory
-{
-    return [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
+    [managedObjectContext performBlockAndWait:^{
+        NSError *error = nil;
+        if ([managedObjectContext hasChanges] && ![managedObjectContext save:&error])
+            NSLog( @"Unresolved error: %@\n%@", error, [error userInfo] );
+    }];
 }
 
 #pragma mark - Entities
 
 - (User *)primaryUser {
-	// Make sure there is an primary user
-	User *primaryUser = [User primaryUserInContext:self.managedObjectContext];
-	if (!primaryUser) {			
-		// Create and save the default user
-		primaryUser = [User insertedNewUserInManagedObjectContext:self.managedObjectContext];
-		primaryUser.primary = YES;
-		[self saveContext];
+
+    User *primaryUser = [User primaryUserInContext:self.managedObjectContext];
+    if (!primaryUser) {
+        // Create the primary user
+        primaryUser = [User insertUserInManagedObjectContext:self.managedObjectContext primary:YES];
     }
-	return primaryUser;
+
+    return primaryUser;
 }
 
 #pragma mark - UIAlertViewDelegate
 
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex {
 
-    if (alertView == self.handleCloudContentAlert && buttonIndex == [alertView firstOtherButtonIndex]) {
-        // Fix Now
-        self.handleCloudContentWarningAlert = [[UIAlertView alloc] initWithTitle:@"Fix iCloud Now" message:
-                @"This problem can usually be auto‑corrected by opening the app on another device where you recently made changes.\n"
-                        @"If you wish to correct the problem from this device anyway, it is possible that recent changes on another device will be lost."
-                                                                        delegate:self
-                                                               cancelButtonTitle:@"Back"
-                                                               otherButtonTitles:@"Fix Anyway", nil];
-        [self.handleCloudContentWarningAlert show];
+    if (alertView == cloudContentHealingAlert) {
+        if (buttonIndex == [alertView firstOtherButtonIndex]) {
+            // Disable
+            self.ubiquityStoreManager.cloudEnabled = NO;
+        }
     }
 
-    if (alertView == self.handleCloudContentWarningAlert) {
-        if (buttonIndex == alertView.cancelButtonIndex)
-                // Back
-            [self.handleCloudContentAlert show];
+    if (alertView == cloudContentCorruptedAlert) {
+        if (buttonIndex == [alertView firstOtherButtonIndex]) {
+            // Disable
+            self.ubiquityStoreManager.cloudEnabled = NO;
+        }
+        else if (buttonIndex == [alertView firstOtherButtonIndex] + 1) {
+            // Fix Now
+            handleCloudContentWarningAlert = [[UIAlertView alloc] initWithTitle:@"Fix iCloud Now" message:
+                    @"This problem can usually be auto‑corrected by opening the app on another device where you recently made changes.\n"
+                            @"If you wish to correct the problem from this device anyway, it is possible that recent changes on another device will be lost."
+                                                                       delegate:self
+                                                              cancelButtonTitle:@"Back"
+                                                              otherButtonTitles:@"Fix Anyway", nil];
+            [handleCloudContentWarningAlert show];
+        }
+    }
 
-        if (buttonIndex == alertView.firstOtherButtonIndex)
-                // Fix Anyway
+    if (alertView == handleCloudContentWarningAlert) {
+        if (buttonIndex == alertView.cancelButtonIndex) {
+            // Back
+            [cloudContentCorruptedAlert show];
+        }
+        else if (buttonIndex == alertView.firstOtherButtonIndex) {
+            // Fix Anyway
             [self.ubiquityStoreManager rebuildCloudContentFromCloudStoreOrLocalStore:YES];
+        }
     }
 
-    if (alertView == self.handleLocalStoreAlert && buttonIndex == [alertView firstOtherButtonIndex])
-        [self.ubiquityStoreManager deleteLocalStore];
+    if (alertView == handleLocalStoreAlert) {
+        if (buttonIndex == [alertView firstOtherButtonIndex]) {
+            // Recreate
+            [self.ubiquityStoreManager deleteLocalStore];
+        }
+    }
 }
 
 
 #pragma mark - UbiquityStoreManagerDelegate
 
-// STEP 4 - Implement the UbiquityStoreManager delegate methods
+// STEP 2 - Implement the UbiquityStoreManager delegate methods
 - (NSManagedObjectContext *)managedObjectContextForUbiquityChangesInManager:(UbiquityStoreManager *)manager {
+
     return self.managedObjectContext;
 }
 
 - (void)ubiquityStoreManager:(UbiquityStoreManager *)manager willLoadStoreIsCloud:(BOOL)isCloudStore {
 
-    __managedObjectContext = nil;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [masterViewController.iCloudSwitch setOn:isCloudStore animated:YES];
-        [masterViewController.storeLoadingActivity startAnimating];
-    });
+    NSManagedObjectContext *managedObjectContext = self.managedObjectContext;
+    [managedObjectContext performBlockAndWait:^{
+        NSError *error = nil;
+        if ([managedObjectContext hasChanges] && ![managedObjectContext save:&error])
+            NSLog( @"Unresolved error: %@\n%@", error, [error userInfo] );
+
+        [managedObjectContext reset];
+    }];
+
+    _managedObjectContext = nil;
 }
 
-- (void)ubiquityStoreManager:(UbiquityStoreManager *)manager failedLoadingStoreWithCause:(UbiquityStoreErrorCause)cause context:(id)context wasCloud:(BOOL)wasCloudStore {
-
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [masterViewController.storeLoadingActivity stopAnimating];
-        
-        if (!wasCloudStore && ![self.handleLocalStoreAlert isVisible]) {
-            self.handleLocalStoreAlert = [[UIAlertView alloc] initWithTitle:@"Local Store Problem" message:
-                    @"Your datastore got corrupted and needs to be recreated."
-                                                                   delegate:self
-                                                          cancelButtonTitle:nil otherButtonTitles:@"Recreate", nil];
-            [self.handleLocalStoreAlert show];
-        }
-    });
-}
-
-- (void)ubiquityStoreManager:(UbiquityStoreManager *)manager didLoadStoreForCoordinator:(NSPersistentStoreCoordinator *)coordinator isCloud:(BOOL)isCloudStore {
+- (void)ubiquityStoreManager:(UbiquityStoreManager *)manager didLoadStoreForCoordinator:(NSPersistentStoreCoordinator *)coordinator
+                     isCloud:(BOOL)isCloudStore {
 
     NSManagedObjectContext *moc = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSMainQueueConcurrencyType];
-    [moc setPersistentStoreCoordinator:coordinator];
+    moc.persistentStoreCoordinator = coordinator;
+    moc.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy;
+    _managedObjectContext = moc;
 
-    __managedObjectContext = moc;
-    __managedObjectContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self.handleCloudContentAlert dismissWithClickedButtonIndex:[self.handleCloudContentAlert firstOtherButtonIndex] + 9
-                                                           animated:YES];
-        [self.handleCloudContentWarningAlert dismissWithClickedButtonIndex:[self.handleCloudContentWarningAlert firstOtherButtonIndex] + 9
-                                                           animated:YES];
+    dispatch_async( dispatch_get_main_queue(), ^{
+        [cloudContentCorruptedAlert dismissWithClickedButtonIndex:[cloudContentCorruptedAlert cancelButtonIndex] animated:YES];
+        [handleCloudContentWarningAlert dismissWithClickedButtonIndex:[handleCloudContentWarningAlert cancelButtonIndex] animated:YES];
+    } );
+}
 
-        [masterViewController.iCloudSwitch setOn:isCloudStore animated:YES];
+- (void)ubiquityStoreManager:(UbiquityStoreManager *)manager failedLoadingStoreWithCause:(UbiquityStoreErrorCause)cause context:(id)context
+                    wasCloud:(BOOL)wasCloudStore {
+
+    dispatch_async( dispatch_get_main_queue(), ^{
+        [masterViewController.iCloudSwitch setEnabled:YES];
+        [masterViewController.iCloudSwitch setOn:wasCloudStore animated:YES];
         [masterViewController.storeLoadingActivity stopAnimating];
-    });
+
+        if (!wasCloudStore && ![handleLocalStoreAlert isVisible]) {
+            handleLocalStoreAlert = [[UIAlertView alloc] initWithTitle:@"Local Store Problem"
+                                                               message:@"Your datastore got corrupted and needs to be recreated."
+                                                              delegate:self
+                                                     cancelButtonTitle:nil otherButtonTitles:@"Recreate", nil];
+            [handleLocalStoreAlert show];
+        }
+    } );
 }
 
 - (BOOL)ubiquityStoreManager:(UbiquityStoreManager *)manager handleCloudContentCorruptionWithHealthyStore:(BOOL)storeHealthy {
 
-    if ([self.handleCloudContentAlert isVisible] || [self.handleCloudContentWarningAlert isVisible])
-        NSLog(@"already showing.");
-    else if (manager.cloudEnabled && !storeHealthy)
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self.handleCloudContentAlert = [[UIAlertView alloc] initWithTitle:@"iCloud Sync Problem" message:
-                    @"\n\n\n\nWaiting for another device to auto‑correct the problem..."
-                                                                     delegate:self
-                                                            cancelButtonTitle:nil otherButtonTitles:@"Fix Now", nil];
+    if (storeHealthy) {
+        dispatch_async( dispatch_get_main_queue(), ^{
+            if ([cloudContentHealingAlert isVisible])
+                return;
+
+            cloudContentHealingAlert = [[UIAlertView alloc]
+                    initWithTitle:@"iCloud Store Corruption"
+                          message:@"\n\n\n\nRebuilding cloud store to resolve corruption."
+                         delegate:self cancelButtonTitle:nil otherButtonTitles:@"Disable iCloud", nil];
+
             UIActivityIndicatorView *activityIndicator = [[UIActivityIndicatorView alloc]
                     initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
             activityIndicator.center = CGPointMake( 142, 90 );
             [activityIndicator startAnimating];
-            [self.handleCloudContentAlert addSubview:activityIndicator];
-            [self.handleCloudContentAlert show];
-        });
+            [cloudContentHealingAlert addSubview:activityIndicator];
+            [cloudContentHealingAlert show];
+        } );
 
-    return NO;
+        return YES;
+    }
+    else {
+        dispatch_async( dispatch_get_main_queue(), ^{
+            if ([cloudContentHealingAlert isVisible] || [handleCloudContentWarningAlert isVisible])
+                return;
+
+            cloudContentCorruptedAlert = [[UIAlertView alloc]
+                    initWithTitle:@"iCloud Store Corruption"
+                          message:@"\n\n\n\nWaiting for another device to auto-correct the problem..."
+                         delegate:self cancelButtonTitle:nil otherButtonTitles:@"Disable iCloud", @"Fix Now", nil];
+
+            UIActivityIndicatorView *activityIndicator = [[UIActivityIndicatorView alloc]
+                    initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+            activityIndicator.center = CGPointMake( 142, 90 );
+            [activityIndicator startAnimating];
+            [cloudContentCorruptedAlert addSubview:activityIndicator];
+            [cloudContentCorruptedAlert show];
+        } );
+
+        return NO;
+    }
 }
 
 @end
