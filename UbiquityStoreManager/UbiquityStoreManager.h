@@ -56,7 +56,7 @@
  *
  * NOTE: This notification is posted from the persistence queue.  If you need to do UI work, you'll need to dispatch it to the main queue.
  */
-extern NSString *const USMStoreWillChangeNotification;
+FOUNDATION_EXPORT NSString *const USMStoreWillChangeNotification;
 /**
  * The store managed by the ubiquity manager's coordinator changed (eg. switching (no store) or switched to iCloud or local).
  *
@@ -66,25 +66,30 @@ extern NSString *const USMStoreWillChangeNotification;
  *
  * NOTE: This notification is posted from the persistence queue.  If you need to do UI work, you'll need to dispatch it to the main queue.
  */
-extern NSString *const USMStoreDidChangeNotification;
+FOUNDATION_EXPORT NSString *const USMStoreDidChangeNotification;
 /**
  * The store managed by the ubiquity manager's coordinator imported changes from iCloud (eg. another device saved changes to iCloud).
  */
-extern NSString *const USMStoreDidImportChangesNotification;
+FOUNDATION_EXPORT NSString *const USMStoreDidImportChangesNotification;
 /**
  * The boolean value in the NSUserDefaults at this key specifies whether iCloud is enabled on this device.
  */
-extern NSString *const USMCloudEnabledKey;
+FOUNDATION_EXPORT NSString *const USMCloudEnabledKey;
 /**
  * The number in the cloud enumeration options dictionary that indicates the cloud version to use for loading the store.
  */
-extern NSString *const USMCloudVersionKey;
+FOUNDATION_EXPORT NSString *const USMCloudVersionKey;
+/**
+ * The number in the cloud enumeration options dictionary that indicates the backup policy that should be applied to the store.
+ */
+FOUNDATION_EXPORT NSString *const USMBackupPolicyKey;
 /**
  * The boolean value in the cloud enumeration options dictionary specifies whether it is the currently active store in USM.
  */
-extern NSString *const USMCloudCurrentKey;
+FOUNDATION_EXPORT NSString *const USMCloudCurrentKey;
 
-typedef enum {
+typedef NS_ENUM(NSUInteger, UbiquityStoreErrorCause)
+{
     UbiquityStoreErrorCauseNoError = noErr, // Nothing went wrong.  There is no context.
     UbiquityStoreErrorCauseDeleteStore, // Error occurred while deleting the store file or its transaction logs.  context = the path of the store.
     UbiquityStoreErrorCauseCreateStorePath, // Error occurred while creating the path where the store needs to be saved.  context = the path of the store.
@@ -95,16 +100,25 @@ typedef enum {
     UbiquityStoreErrorCauseImportChanges, // Error occurred while importing changes from the cloud into the application's context.  context = the DidImportUbiquitousContentChanges notification.
     UbiquityStoreErrorCauseConfirmActiveStore, // Error occurred while confirming a new active store.  context = The url that couldn't be created or updated to confirm the store.
     UbiquityStoreErrorCauseCorruptActiveStore, // Error occurred while handling store corruption.  context = The path that couldn't be read, created or updated.
-    UbiquityStoreErrorCauseEnumerateStores, // Error occurred while attempting to enumerate the known cloud stores.  context = The path that couldn't be enumerated.
-} UbiquityStoreErrorCause;
-extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause);
+    UbiquityStoreErrorCauseEnumerateStores // Error occurred while attempting to enumerate the known cloud stores.  context = The path that couldn't be enumerated.
+};
 
-typedef enum {
+FOUNDATION_EXPORT NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause);
+
+typedef NS_ENUM(NSUInteger, UbiquityStoreMigrationStrategy)
+{
     UbiquityStoreMigrationStrategyCopyEntities = 1, // Migrate by copying all entities from the active store to the new store.
     UbiquityStoreMigrationStrategyIOS, // Migrate using iOS' migration routines (bugged for: cloud -> local on iOS 6.0, local -> cloud on iOS 6.1).
     UbiquityStoreMigrationStrategyManual, // Migrate using the delegate's -ubiquityStoreManager:manuallyMigrateStore:toStore:.
-    UbiquityStoreMigrationStrategyNone, // Don't migrate, just create an empty destination store.
-} UbiquityStoreMigrationStrategy;
+    UbiquityStoreMigrationStrategyNone // Don't migrate, just create an empty destination store.
+};
+
+typedef NS_ENUM(NSUInteger, UbiquityStoreBackupPolicy)
+{
+	UbiquityStoreBackupPolicyNever,     // Do not allow backups of the store
+	UbiquityStoreBackupPolicyLocalOnly, // Only allow backups when iCloud is disabled
+	UbiquityStoreBackupPolicyAlways     // Let the system do standard backup without interferrence
+};
 
 @class UbiquityStoreManager;
 
@@ -366,6 +380,16 @@ __attribute__((deprecated));
  * This property is Key-Value Observing compatible: observing this key will give you updates on the current user's iCloud availability.
  */
 @property(nonatomic, readonly) BOOL cloudAvailable;
+
+/**
+ * Indicates whether the iCloud store or the local store is in use.
+ *
+ * Changing this property will cause a reload of the active store.
+ *
+ * NOTE: You are recommended to only set this as a result of a user action or
+ *       from -ubiquityStoreManager:willLoadStoreIsCloud:
+ */
+@property(nonatomic) UbiquityStoreBackupPolicy backupPolicy;
 
 /**
  * Indicates whether the iCloud store or the local store is in use.
