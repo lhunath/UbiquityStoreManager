@@ -50,8 +50,9 @@ NSString *const USMCloudStoreMigrationSource = @"MigrationSource.sqlite";
 NSString *const USMCloudContentDirectory = @"CloudLogs";
 NSString *const USMCloudContentStoreUUID = @"StoreUUID";
 NSString *const USMCloudContentCorruptedUUID = @"CorruptedUUID";
+NSString *const USMBackupPolicyKey = @"BackupPolicy";
 
-extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
+FOUNDATION_EXPORT NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
 
     switch (cause) {
         case UbiquityStoreErrorCauseNoError:
@@ -78,7 +79,7 @@ extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
             return @"UbiquityStoreErrorCauseEnumerateStores";
     }
 
-    return [NSString stringWithFormat:@"UnsupportedCause:%d", cause];
+    return [NSString stringWithFormat:@"UnsupportedCause:%lu", (unsigned long)cause];
 }
 
 /** USMFilePresenter monitors a file for NSFilePresenter related changes. */
@@ -148,6 +149,7 @@ extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
 @property(nonatomic, strong) USMCorruptedUUIDPresenter *corruptedUUIDPresenter;
 @property(nonatomic, assign) BOOL cloudAvailable;
 @property(nonatomic, strong) NSBlockOperation *finishedLoadingOperation;
+@property(nonatomic, strong) NSURL * supportURL;
 
 @end
 
@@ -191,10 +193,14 @@ extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
                 URLByAppendingPathComponent:[self localContentName] isDirectory:NO]
                 URLByAppendingPathExtension:@"sqlite"];
     _localStoreURL = localStoreURL;
+	_supportURL = [[_localStoreURL URLByDeletingLastPathComponent] URLByAppendingPathComponent:[NSString stringWithFormat:@".%@_SUPPORT", [self localContentName]] isDirectory:YES];
+	
     _containerIdentifier = containerIdentifier;
     _storeConfiguration = storeConfiguration;
     _storeOptions = storeOptions == nil? @{ }: storeOptions;
 
+	_backupPolicy = _storeOptions[USMBackupPolicyKey] == nil ? UbiquityStoreBackupPolicyLocalOnly : (UbiquityStoreBackupPolicy)([_storeOptions[USMBackupPolicyKey] unsignedLongValue]);
+	
     // Private vars.
     _currentIdentityToken = [[NSFileManager defaultManager] respondsToSelector:@selector(ubiquityIdentityToken)]?
                             [[NSFileManager defaultManager] ubiquityIdentityToken]: nil;
@@ -226,6 +232,7 @@ extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
                                                      name:NSUbiquityIdentityDidChangeNotification
                                                    object:nil];
 
+	[self applyBackupFilePermissions];
     [self reloadStore];
 
     return self;
@@ -244,6 +251,56 @@ extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
 }
 
 #pragma mark - File Handling
+
+- (void)applyBackupFilePermissions {
+	
+	if (![[NSFileManager defaultManager] fileExistsAtPath:[_supportURL path]]) {
+		[[NSFileManager defaultManager] createDirectoryAtURL:_supportURL
+								 withIntermediateDirectories:YES
+												  attributes:nil
+													   error:nil];
+	}
+	
+	NSLog(@"Applying permissions according to policy: ");
+	switch (_backupPolicy) {
+		case UbiquityStoreBackupPolicyAlways:
+			NSLog(@"\tUbiquityStoreBackupPolicyAlways - persistent store will be backed up to iCloud or iTunes");
+			break;
+		case UbiquityStoreBackupPolicyLocalOnly:
+			NSLog(@"\tUbiquityStoreBackupPolicyLocalOnly - persistent store will be permitted to be backed up ONLY if iCloud Syncing is disabled");
+			break;
+		case UbiquityStoreBackupPolicyNever:
+			NSLog(@"\tUbiquityStoreBackupPolicyNever - persistent store will never be backed up to iCloud or iTunes");
+			break;
+		default:
+			break;
+	}
+	BOOL excludeFromBackup = !((self.backupPolicy == UbiquityStoreBackupPolicyAlways) || ((self.backupPolicy == UbiquityStoreBackupPolicyLocalOnly) && !self.cloudEnabled));
+	
+	NSError *error = nil;
+    BOOL success = [_localStoreURL setResourceValue: @(excludeFromBackup)
+                                 			 forKey: NSURLIsExcludedFromBackupKey
+											  error: &error];
+    if(!success){
+        NSLog(@"Error excluding local store file from backup: %@", error);
+    } else if (excludeFromBackup){
+		NSLog(@"Successfully excluded file from future backups: %@", [_localStoreURL lastPathComponent]);
+	} else {
+		NSLog(@"Successfully included file in future backups: %@", [_localStoreURL lastPathComponent]);
+	}
+	
+	error = nil;
+	success = [_supportURL setResourceValue: @(excludeFromBackup)
+									 forKey: NSURLIsExcludedFromBackupKey
+									  error: &error];
+    if(!success){
+        NSLog(@"Error excluding support store directory from backup: %@", error);
+    } else if (excludeFromBackup){
+		NSLog(@"Successfully excluded file from future backups: %@", [_supportURL lastPathComponent]);
+	} else {
+		NSLog(@"Successfully included file in future backups: %@", [_supportURL lastPathComponent]);
+	}
+}
 
 - (NSString *)localContentName {
 
@@ -773,14 +830,14 @@ extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
              ![self.delegate ubiquityStoreManager:self
                         shouldMigrateFromStoreURL:migrationStoreURL toStoreURL:cloudStoreURL
                                           isCloud:YES])) {
-            [self log:@"[DEBUG] Will NOT migrate to cloud store from: %@ (strategy: %d).", [migrationStoreURL lastPathComponent],
-                      migrationStrategy];
+            [self log:@"[DEBUG] Will NOT migrate to cloud store from: %@ (strategy: %ld)", [migrationStoreURL lastPathComponent],
+                      (unsigned long)migrationStrategy];
             migrationStrategy = UbiquityStoreMigrationStrategyNone;
             migrationStoreURL = nil;
         }
         else
-            [self log:@"Will migrate to cloud store from: %@ (strategy: %d).", [migrationStoreURL lastPathComponent],
-                      migrationStrategy];
+            [self log:@"Will migrate to cloud store from: %@ (strategy: %ld)", [migrationStoreURL lastPathComponent],
+                      (unsigned long)migrationStrategy];
 
         // Load the cloud store.
         NSMutableDictionary *cloudStoreOptions = [self optionsForCloudStoreURL:cloudStoreURL];
@@ -859,7 +916,7 @@ extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
             [[NSFileManager defaultManager] fileExistsAtPath:localStoreURL.path])
             migrationStrategy = UbiquityStoreMigrationStrategyNone;
         else
-            [self log:@"Will migrate to local store from: %@ (strategy: %d).", [migrationStoreURL lastPathComponent], migrationStrategy];
+            [self log:@"Will migrate to local store from: %@ (strategy: %ld).", [migrationStoreURL lastPathComponent], (unsigned long)migrationStrategy];
 
         // Load the local store.
         [self loadStoreAtURL:localStoreURL withOptions:[self optionsForLocalStore]
@@ -1618,6 +1675,12 @@ extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
 }
 
 #pragma mark - Properties
+
+- (void)setBackupPolicy:(UbiquityStoreBackupPolicy)backupPolicy
+{
+	_backupPolicy = backupPolicy;
+	[self applyBackupFilePermissions];
+}
 
 - (BOOL)cloudEnabled {
 
