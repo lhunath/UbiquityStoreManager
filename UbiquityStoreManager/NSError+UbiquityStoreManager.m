@@ -84,7 +84,8 @@ NSString *const USMStoreURLsErrorKey = @"USMStoreURLsErrorKey";
         // Severity: Critical To Cloud Content
         // Cause: An internal SQLite inconsistency
         // Action: Mark corrupt, request rebuild.
-        NSMutableArray *storeURLs = [NSMutableArray arrayWithObject:[NSURL URLWithString:[exception userInfo][@"NSFilePath"]]];
+        NSMutableArray *storeURLs = [NSMutableArray arrayWithObject:[NSURL URLWithString:[exception userInfo][@"NSFilePath"]?:@"nil://"]?:
+                                                                    [NSURL URLWithString:@"badurl://"]];
         [[NSNotificationCenter defaultCenter] postNotificationName:UbiquityManagedStoreDidDetectCorruptionNotification object:@{
                 NSUnderlyingErrorKey : self,
                 USMStoreURLsErrorKey : storeURLs,
