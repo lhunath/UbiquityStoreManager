@@ -1,6 +1,8 @@
 [![Gittip](http://img.shields.io/gittip/lhunath.png)](https://www.gittip.com/lhunath/)
 [![Travis CI](http://img.shields.io/travis-ci/lhunath/UbiquityStoreManager.png)](https://travis-ci.org/lhunath/UbiquityStoreManager)
 
+## I am no longer maintaining this project.  I'm relying on some of the users of this project to step up and keep this project alive under iOS 8+ if there is continued interest in it.
+
 # About
 
 `UbiquityStoreManager` is a controller that implements **iCloud integration with Core Data** for you, and takes away all the hardship.
